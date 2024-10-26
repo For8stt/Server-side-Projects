@@ -1,0 +1,10 @@
+services:
+  app:
+    image: node:lts
+    working_dir: /app
+    volumes:
+      - .:/app
+    ports:
+      - "8080:8080"
+      - "8082:8082"
+    command: ["npm", "start"]
