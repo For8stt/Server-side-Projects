@@ -3,31 +3,60 @@
 
 const socket = new WebSocket('ws://localhost:8082'); // Підключення до WebSocket
 
-socket.onopen = (event) => {
-    console.log('loxxx',event)
+socket.onopen = () => {
     console.log('Підключено до WebSocket сервера');
 };
+let playerId = null;
+let rShip = 0;
+let missiles = [];
+let lasers = []
+let gState=null;
+
+function updateGstate(gameState){
+    rShip=gameState.ship.r;
+    missiles=gameState.missiles;
+    lasers=gameState.lasers
+    gState=gameState;
+}
 
 socket.onmessage = (event) => {
     const gameState = JSON.parse(event.data);
     if (gameState.playerId !== undefined) {
         // Якщо отримали ID від сервера
+        playerId = gameState.playerId;
         console.log(`Ваш ID: ${gameState.playerId}`);
         // Можна зберегти ID в змінній для подальшого використання
-        const playerId = gameState.playerId;
     } else {
-        console.log(`Повідомлення від сервера:`+gameState)
-    }
+        console.log(`Повідомлення від сервера:`)
+        console.log(gameState)
 
+        updateGstate(gameState);
+        updateGameUI(gameState);
+    }
 };
 
+function sendAction(action, direction = null) {
+    fetch('http://localhost:8080/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerId, action: { action, direction } })
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Дія надіслана успішно');
+            } else {
+                console.error('Помилка відправки дії:', data.error);
+            }
+        });
+}
 window.addEventListener('keydown', (ev) => {
     if (ev.code === 'KeyJ' || ev.code === 'ArrowLeft') {
-        socket.send(JSON.stringify({ action: 'rotateShip', direction: -1 }));
+        sendAction('rotateShip', -1);
     } else if (ev.code === 'KeyL' || ev.code === 'ArrowRight') {
-        socket.send(JSON.stringify({ action: 'rotateShip', direction: 1 }));
+        sendAction('rotateShip', 1);
     } else if (ev.code === 'Space') {
-        socket.send(JSON.stringify({ action: 'addLaser' }));
+        sendAction('addLaser');
     }
 });
 
@@ -35,7 +64,21 @@ window.addEventListener('keydown', (ev) => {
 function updateGameUI(gameState) {
     // Оновлення елементів на сторінці відповідно до стану гри
     console.log('Оновлення UI гри:', gameState);
+    initGameField();
+    displayMissiles();
+    displayLasers();
+    displayShip();
+    displayGameInfo();
 }
+
+
+
+
+
+
+
+
+
 
 ////=================================////
 var xFields = 59;
@@ -121,6 +164,67 @@ ShipImage.onload = checkImagesLoaded;
 MissileImage.onload = checkImagesLoaded;
 GunImage.onload = checkImagesLoaded;
 
-function displayShip(){
-    console.log('ship')
+
+///+++=========+++///
+
+var xShip = mid.x;
+var yShip = mid.y;
+
+var shipCenter = [
+    [xShip-1,yShip-1],[xShip,yShip-1],[xShip+1,yShip-1],
+    [xShip-1,yShip],[xShip,yShip],[xShip+1,yShip],
+    [xShip-1,yShip+1],[xShip,yShip+1],[xShip+1,yShip+1]
+];
+
+// north: south: west: east: nw: ne: sw: se:
+//  X             X     X    X X X X X     X
+// XXX    XXX    XX     XX    X   X   X   X
+//         X      X     X    X     X X X X X
+var shipRotations = [
+    {points: [3,4,5], rpg: 1}, // 0 north
+    {points: [0,4,8], rpg: 2}, // 1 north-east
+    {points: [1,4,7], rpg: 5}, // 2 east
+    {points: [2,4,6], rpg: 8}, // 3 south-east
+    {points: [3,4,5], rpg: 7}, // 4 south
+    {points: [0,4,8], rpg: 6}, // 5 south-west
+    {points: [1,4,7], rpg: 3}, // 6 west
+    {points: [2,4,6], rpg: 0}, // 7 north-west
+];
+
+
+function displayShip() {
+    shipRotations[rShip].points.forEach(point => {
+        var tmpX = shipCenter[point][0];
+        var tmpY = shipCenter[point][1];
+        displayPoint(tmpX,tmpY,'black');
+    });
+    var point = shipRotations[rShip].rpg;
+    var tmpX = shipCenter[point][0];
+    var tmpY = shipCenter[point][1];
+    displayPoint(tmpX,tmpY,'red');
+}
+
+function displayLasers() {
+    lasers.forEach(laser => {
+        displayPoint(laser.x, laser.y, 'blue');
+    });
+}
+
+function displayMissiles() {
+    missiles.forEach(missile => {
+        displayPoint(missile.x,missile.y,'green');
+    });
+}
+
+//==Show information about game===//
+function displayGameInfo() {
+    let infoElement = document.getElementById('game-info');
+
+    if (!infoElement) {
+        infoElement = document.createElement('p');
+        infoElement.id = 'game-info';
+        document.body.appendChild(infoElement);
+    }
+
+    infoElement.textContent = `Score: ${gState.score} | Speed: ${gState.speed}ms`;
 }

@@ -355,6 +355,11 @@ var endGame = function() {
 
 
 
+
+
+
+
+
 //===Reset===//
 const resetButton=document.createElement('button')
 resetButton.textContent='Reset'
