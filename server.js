@@ -32,6 +32,7 @@ server.listen(port, () => {
 let gameStates = {}; // Об'єкт для зберігання стану гри користувачів
 let players = {};
 let playerIdCounter = 0;
+let users=[];
 
 
 app.post('/action', (req, res) => {
@@ -56,6 +57,67 @@ app.post('/action', (req, res) => {
     }
 });
 
+app.post('/start-game', (req, res) => {
+    const { playerId } = req.body;
+
+    // Перевірка наявності ID гравця
+    if (!gameStates[playerId]) {
+        return res.status(400).json({ error: 'Гравець не знайдений' });
+    }
+
+    const allUsersInfo = users.filter(user => user.score !== undefined).map(user => ({
+            username: user.username,
+            score: user.score
+        }));
+
+
+    // Запускаємо гру для цього гравця
+    preGame(playerId);
+
+    // Відповідаємо клієнту
+    res.json({ success: true, message: 'Game started successfully!' , users:allUsersInfo});
+});
+app.post('/registration', (req, res) => {
+    const { playerId ,username, email, password} = req.body;
+
+    if (!gameStates[playerId]) {
+        return res.status(500).json({ error: 'Player not found' });
+    }
+    if (!validateEmail(email) || !validatePassword(password)) {
+        return res.status(500).json({ error: 'Incorrect email format or password' });
+    }
+    const userExists = users.some(user => user.username === username || user.email === email);
+    if (userExists) {
+        return res.status(500).json({ error: 'Username or email already exists' });
+    }
+    console.log(playerId,username,email,password)
+    const newUser = {playerId: playerId, username: username, email: email, password: password};
+    users.push(newUser);
+
+    res.json({ success: true});
+});
+function validateEmail(email) {
+    const emailPattern = /^[a-zA-Z0-9._%+-]{3,}@[a-zA-Z0-9.-]{3,}\.[a-zA-Z]{2,}$/;
+    if (!emailPattern.test(email)) {
+        return false;
+    }
+    return true;
+}
+function validatePassword(password) {
+    return /^[a-zA-Z]{1,}$/.test(password);
+}
+app.post('/enter', (req, res) => {
+    const { playerId, username, password } = req.body;
+
+    const user = users.find(user => user.username === username && user.password === password);
+    if (!user) {
+        return res.status(400).json({ error: 'Incorrect username or password' });
+    }
+    user.playerId = playerId;
+    gameStates[playerId].isGuest = false;
+
+    res.json({ success: true, username: username });
+});
 function updateGameState(action, playerId) {
     // Логіка оновлення стану гри для конкретного гравця
     if (action.action === 'rotateShip') {
@@ -83,11 +145,29 @@ wss.on('connection', (client) => {
         score: 0,
         speed: 1000,
         counter: 0,
+        isGuest: true
     };
 
-    preGame(playerId);
+    // preGame(playerId);
 });
 
+function makeStatistik(playerId){
+    const user = users.find(user => user.playerId === playerId);
+    if (user && !gameStates[playerId].isGuest) {
+        user.score = gameStates[playerId].score;
+        user.speed = gameStates[playerId].speed;
+    }else {
+        const newUser = {
+            playerId: playerId,
+            username: 'notRegisteredUser'+playerId,
+            email: 'notRegisteredUser'+playerId,
+            password: 'notRegisteredUser'+playerId,
+            score: gameStates[playerId].score,
+            speed: gameStates[playerId].speed
+        };
+        users.push(newUser);
+    }
+}
 
 
 
@@ -113,6 +193,7 @@ let preGame = (playerId) => {
 function endGame(playerId) {
     console.log('user end the game:'+playerId)
     clearInterval(intervalId[playerId]);
+    makeStatistik(playerId);
 }
 let intervalId=[];
 function mainLoop(playerId) {

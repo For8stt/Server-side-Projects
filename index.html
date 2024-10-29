@@ -5,13 +5,42 @@
     <title>u1</title>
 </head>
 <body>
-<div class="container">
+<div class="container" id="cont">
     <div class="row">
         <h1>U2</h1>
     </div>
     <div class="row">
         <div id="game"></div>
     </div>
+
+
+    <form id="registrationForm">
+        <table>
+            <tr>
+                <td><label for="username">Meno používateľa:</label></td>
+                <td><input type="text" id="username" name="username" required></td>
+            </tr>
+            <tr>
+                <td><label for="email">Email:</label></td>
+                <td><input type="email" id="email" name="email"></td>
+            </tr>
+            <tr>
+                <td><label for="password">Heslo:</label></td>
+                <td><input type="password" id="password" name="password" required></td>
+            </tr>
+            <tr>
+                <td colspan="1" style="text-align: center;">
+                    <button type="submit">Registrovať sa</button>
+                    <button type="button" id="loginButton">Prihlásiť sa</button>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" style="text-align: center;">
+                    <p id="pp"></p>
+                </td>
+            </tr>
+        </table>
+    </form>
 </div>
 <script src="client.js"></script>
 </body>

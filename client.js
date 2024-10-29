@@ -71,11 +71,53 @@ function updateGameUI(gameState) {
     displayGameInfo();
 }
 
+b=document.createElement('button');
+b.textContent = 'Start Game';
+b.id = 'StartGame'
+document.body.appendChild(b)
 
+document.getElementById('StartGame').addEventListener('click',()=>{
+    startGame()
+})
+function startGame(){
+    if (imagesLoaded === totalImages) {
+        initGameField();
+        displayShip();
 
+        fetch('http://localhost:8080/start-game', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ playerId: playerId }) // Тіло запиту з ID гравця
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Unable to start the game');
+                }
+                return response.json(); // Отримуємо JSON відповідь
+            })
+            .then(data => {
+                console.log('Game successfully started:', data);
+                displayAllUsersInfo(data.users);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    }
+}
 
+function displayAllUsersInfo(users) {
+    let infoElement = document.getElementById('game-info-for-all');
 
-
+    if (!infoElement) {
+        infoElement = document.createElement('p');
+        infoElement.id = 'game-info-for-all';
+        document.body.appendChild(infoElement);
+    }
+    const userInfoString = users.map(user => `${user.username} score: ${user.score} `).join('\n');
+    infoElement.innerText = `Users: \n ${userInfoString}`;
+}
 
 
 
@@ -152,10 +194,10 @@ const totalImages = 4;
 
 function checkImagesLoaded() {
     imagesLoaded++;
-    if (imagesLoaded === totalImages) {
-        initGameField();
-        displayShip();
-    }
+    // if (imagesLoaded === totalImages) {
+    //     initGameField();
+    //     displayShip();
+    // }
 }
 
 
@@ -226,5 +268,61 @@ function displayGameInfo() {
         document.body.appendChild(infoElement);
     }
 
-    infoElement.textContent = `Score: ${gState.score} | Speed: ${gState.speed}ms`;
+    infoElement.textContent = `MY: Score: ${gState.score} | Speed: ${gState.speed}ms`;
 }
+
+const form=document.getElementById('registrationForm');
+const nameInput=document.getElementById('username');
+const emailInput=document.getElementById('email');
+const passwordInput=document.getElementById('password');
+const pp=document.getElementById('pp');
+
+    form.addEventListener('submit', function (event) {
+        event.preventDefault(); // Запобігаємо стандартному відправленню форми
+
+        const username = nameInput.value;
+        const email = emailInput.value;
+        const password = passwordInput.value;
+
+        fetch('http://localhost:8080/registration', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({playerId, username: username, email: email, password: password})
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    pp.textContent = 'registered '
+                } else {
+                    pp.textContent = ` Registration error: ${data.error}`
+                }
+            });
+
+        form.reset();
+    });
+    const loginButton = document.getElementById('loginButton');
+    loginButton.addEventListener('click', function (event) {
+        event.preventDefault(); // Запобігаємо стандартному відправленню форми
+
+        const username = nameInput.value;
+        const email = emailInput.value;
+        const password = passwordInput.value;
+
+        // Тут можна обробити дані, наприклад, надіслати їх на сервер або вивести в консоль
+        console.log(`Enter in the system. Meno: ${username}, Email: ${email}, Heslo: ${password}`);
+        fetch('http://localhost:8080/enter', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({playerId, username: username, password: password})
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    pp.textContent = `User is logged in with a nickname: ${data.username}`
+                } else {
+                    pp.textContent = `Enter error: ${data.error}`
+                }
+            });
+
+        form.reset();
+    });
