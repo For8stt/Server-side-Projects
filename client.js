@@ -125,7 +125,6 @@ function displayAllUsersInfo(users) {
 ////=================================////
 var xFields = 59;
 var yFields = 59;
-var fields = 59;
 
 var mid = {
     x: (xFields-1)/2,
@@ -391,6 +390,32 @@ document.getElementById('deleteUserButton').addEventListener('click', function (
         })
         .catch(error => {
             console.error('Error deleting user:', error);
+        });
+});
+const exportButton = document.getElementById('exportButton');
+exportButton.addEventListener('click', () => {
+    fetch('http://localhost:8080/export-users', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.blob(); // Отримуємо CSV як blob
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'users.csv';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        })
+        .catch(error => {
+            console.error('Error exporting users:', error);
         });
 });
 

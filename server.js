@@ -18,6 +18,7 @@ const port = 8080; // HTTP порт
 const WSport = 8082; // WS порт
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ port: WSport });
+const json2csv = require('json2csv').parse;
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -77,13 +78,13 @@ app.post('/start-game', (req, res) => {
     // Відповідаємо клієнту
     res.json({ success: true, message: 'Game started successfully!' , users:allUsersInfo});
 });
-app.post('/registration', (req, res) => {
+app.post('/registration', async(req, res) => {
     const { playerId ,username, email, password} = req.body;
 
     if (!gameStates[playerId]) {
         return res.status(500).json({ error: 'Player not found' });
     }
-    if (!validateEmail(email) || !validatePassword(password)) {
+    if (!validateEmail(email) || !validatePassword(password) || (username==='admin'&&password==='admin')) {
         return res.status(500).json({ error: 'Incorrect email format or password' });
     }
     const userExists = users.some(user => user.username === username || user.email === email);
@@ -91,10 +92,20 @@ app.post('/registration', (req, res) => {
         return res.status(500).json({ error: 'Username or email already exists' });
     }
     console.log(playerId,username,email,password)
-    const newUser = {playerId: playerId, username: username, email: email, password: password};
-    users.push(newUser);
+    try {
+        // Хешування пароля
+        const hashedPassword = await bcrypt.hash(password, 10); // 10 - це число раундів хешування
+        const newUser = { playerId: playerId, username: username, email: email, password: hashedPassword };
+        users.push(newUser);
 
-    res.json({ success: true});
+        res.json({ success: true });
+    } catch (error) {
+        return res.status(500).json({ error: 'Failed to hash password' });
+    }
+    // const newUser = {playerId: playerId, username: username, email: email, password: password};
+    // users.push(newUser);
+    //
+    // res.json({ success: true});
 });
 function validateEmail(email) {
     const emailPattern = /^[a-zA-Z0-9._%+-]{3,}@[a-zA-Z0-9.-]{3,}\.[a-zA-Z]{2,}$/;
@@ -106,7 +117,7 @@ function validateEmail(email) {
 function validatePassword(password) {
     return /^[a-zA-Z]{1,}$/.test(password);
 }
-app.post('/enter', (req, res) => {
+app.post('/enter', async(req, res) => {
     const { playerId, username, password } = req.body;
 
     if (username === 'admin' && password === 'admin') {
@@ -117,10 +128,19 @@ app.post('/enter', (req, res) => {
         return res.json({ success: true, username: username, role: 'admin' });
     }
 
-    const user = users.find(user => user.username === username && user.password === password);
+    // const user = users.find(user => user.username === username && user.password === password);
+    // if (!user) {
+    //     return res.status(400).json({ error: 'Incorrect username or password' });
+    // }
+    const user = users.find(user => user.username === username);
     if (!user) {
-        return res.status(400).json({ error: 'Incorrect username or password' });
+        return res.status(401).json({ error: 'User not found' });
     }
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
+        return res.status(401).json({ error: 'Incorrect password' });
+    }
+
     user.playerId = playerId;
     gameStates[playerId].isGuest = false;
 
@@ -144,6 +164,22 @@ app.post('/delete-user', (req, res) => {
     } else {
         res.status(400).json({ error: 'User not found' });
     }
+});
+app.get('/export-users', (req, res) => {
+    const usersForExport = users.map(user => ({
+        playerId: user.playerId,
+        username: user.username,
+        email: user.email,
+        password: user.password,
+        maxScore: user.maxScore || 0,
+        maxSpeed: user.maxSpeed || 0
+    }));
+    const csv = json2csv(usersForExport);
+
+    res.header('Content-Type', 'text/csv');
+    res.attachment('users.csv');
+    res.send(csv);
+
 });
 app.post('/save-ship-selection', (req, res) => {
     const { playerId, shipImage } = req.body;
@@ -260,3 +296,30 @@ function mainLoop(playerId) {
     }, gameStates[playerId].speed);
 }
 
+// function hashPassword(password) {
+//
+//     function stringToByteArray(str) {
+//         const byteArray = new Uint8Array(str.length);
+//         for (let i = 0; i < str.length; i++) {
+//             byteArray[i] = str.charCodeAt(i);
+//         }
+//         return byteArray;
+//     }
+//
+//     function byteArrayToHex(byteArray) {
+//         return Array.from(byteArray)
+//             .map((byte) => byte.toString(16).padStart(2, '0'))
+//             .join('');
+//     }
+//
+//     return window.crypto.subtle.digest('SHA-256', stringToByteArray(password))
+//         .then((hashBuffer) => {
+//             const hashArray = new Uint8Array(hashBuffer);
+//             return byteArrayToHex(hashArray);
+//         });
+// }
+//
+// const password = "mySecurePassword";
+// hashPassword(password).then((hashedPassword) => {
+//     console.log("Hashed Password:", hashedPassword);
+// });
