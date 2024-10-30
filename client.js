@@ -144,9 +144,11 @@ var ctx = canvas.getContext('2d');
 
 var laserImage = new Image();
 var ShipImage = new Image();
+var ShipImage2 = new Image();
 var MissileImage = new Image();
 var GunImage = new Image();
 
+let ShipUse='ship1'
 /*
 *link where I got it:  https://openclipart.org/detail/16287/tennis-ball-bola-de-tenis#google_vignette
 *license link: https://openclipart.org/share
@@ -154,9 +156,11 @@ var GunImage = new Image();
 laserImage.src = 'https://openclipart.org/image/400px/16287';
 /*
 *link where I got it:  https://openclipart.org/detail/261330
+* *link where I got it:  https://openclipart.org/detail/178310
 *license link: https://openclipart.org/share
 */
 ShipImage.src = 'https://openclipart.org/image/400px/261330';
+ShipImage2.src='https://openclipart.org/image/400px/178310'
 /*
 *link where I got it:  https://openclipart.org/detail/183238/8-ball
 *license link: https://openclipart.org/share
@@ -175,10 +179,17 @@ function initGameField() {
 
 
 function displayPoint(x,y,color) {
+    let shipToDisplay;
+    if (ShipUse === 'ship1') {
+        shipToDisplay = ShipImage;
+    } else if (ShipUse === 'ship2') {
+        shipToDisplay = ShipImage2;
+    }
+
     if (color==='green'){
         ctx.drawImage(MissileImage, x * 10, y * 10, 10, 10);
     }else if(color==='black'){
-        ctx.drawImage(ShipImage, x * 10, y * 10, 10, 10);
+        ctx.drawImage(shipToDisplay, x * 10, y * 10, 10, 10);
     } else if(color==='red'){
         ctx.drawImage(GunImage, x * 10, y * 10, 10, 10);
     }else if(color==='blue'){
@@ -189,7 +200,7 @@ function displayPoint(x,y,color) {
     }
 }
 let imagesLoaded = 0;
-const totalImages = 4;
+const totalImages = 5;
 
 
 function checkImagesLoaded() {
@@ -203,6 +214,7 @@ function checkImagesLoaded() {
 
 laserImage.onload = checkImagesLoaded;
 ShipImage.onload = checkImagesLoaded;
+ShipImage2.onload = checkImagesLoaded;
 MissileImage.onload = checkImagesLoaded;
 GunImage.onload = checkImagesLoaded;
 
@@ -300,8 +312,8 @@ const pp=document.getElementById('pp');
 
         form.reset();
     });
-    const loginButton = document.getElementById('loginButton');
-    loginButton.addEventListener('click', function (event) {
+
+    document.getElementById('loginButton').addEventListener('click', function (event) {
         event.preventDefault(); // Запобігаємо стандартному відправленню форми
 
         const username = nameInput.value;
@@ -318,7 +330,17 @@ const pp=document.getElementById('pp');
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    pp.textContent = `User is logged in with a nickname: ${data.username}`
+                    if (data.role === 'admin') {
+                        pp.textContent = `Welcome, Admin ${data.username}`;
+                        document.getElementById('adminPanel').style.display = 'block';
+                    } else {
+                        pp.textContent = `Welcome, ${data.username}`;
+                        document.getElementById('adminPanel').style.display = 'none';
+                    }
+                    if (data.shipImage) {
+                        ShipUse=data.shipImage
+                        console.log(ShipUse);
+                    }
                 } else {
                     pp.textContent = `Enter error: ${data.error}`
                 }
@@ -326,3 +348,78 @@ const pp=document.getElementById('pp');
 
         form.reset();
     });
+document.getElementById('viewUsersButton').addEventListener('click', function () {
+    showUsers()
+});
+function showUsers(){
+    fetch('http://localhost:8080/users', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+    })
+        .then(response => response.json())
+        .then(users => {
+            const userList = document.getElementById('userList');
+            userList.innerHTML = '';
+            users.forEach(user => {
+                const userItem = document.createElement('p');
+                userItem.textContent = `Username: ${user.username}`;
+                userList.appendChild(userItem);
+            });
+            showUsers();
+        })
+        .catch(error => {
+            console.error('Error fetching users:', error);
+        });
+}
+deleteInfo=document.getElementById('deleteInfo')
+document.getElementById('deleteUserButton').addEventListener('click', function () {
+    const userNameToDelete = document.getElementById('userIdToDelete').value;
+
+    fetch(`http://localhost:8080/delete-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: userNameToDelete })
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                deleteInfo.textContent = `User ID ${userNameToDelete} has been deleted.`;
+                document.getElementById('userIdToDelete').value = '';
+            } else {
+                deleteInfo.textContent = `Error deleting user: ${data.error}`;
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting user:', error);
+        });
+});
+
+const formm = document.getElementById('shipSelectionForm');
+const responseMessage = document.getElementById('responseMessage');
+
+formm.addEventListener('submit', function(event) {
+    event.preventDefault(); // Запобігаємо стандартному відправленню форми
+
+    const selectedShipImage = formm.shipImage.value; // Отримуємо вибране зображення
+
+    fetch('http://localhost:8080/save-ship-selection', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ playerId, shipImage: selectedShipImage })
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                responseMessage.textContent = data.message;
+                ShipUse=data.shipImage
+                console.log(ShipUse)
+            } else {
+                responseMessage.textContent = `Error: ${data.error}`;
+            }
+        })
+        .catch(error => {
+            responseMessage.textContent = 'An error occurred while saving your selection.';
+        });
+});

@@ -41,6 +41,28 @@
             </tr>
         </table>
     </form>
+    <div id="adminPanel" style="display: none;">
+        <button id="viewUsersButton">View Users</button>
+        <div id="userList"></div>
+        <input type="text" id="userIdToDelete" placeholder="Enter Username to delete">
+        <button id="deleteUserButton">Delete User</button>
+        <p id="deleteInfo"></p>
+    </div>
+    <form id="shipSelectionForm">
+        <h2>Select an image of the ship:</h2>
+        <div>
+            <label>
+                <input type="radio" name="shipImage" value="ship1" required>
+                <img src="https://openclipart.org/image/400px/261330" alt="Ship 1" width="100" height="100">
+            </label>
+            <label>
+                <input type="radio" name="shipImage" value="ship2">
+                <img src="https://openclipart.org/image/400px/178310" alt="Ship 2" width="100" height="100">
+            </label>
+        </div>
+        <button type="submit">Save your selection</button>
+    </form>
+    <p id="responseMessage"></p>
 </div>
 <script src="client.js"></script>
 </body>

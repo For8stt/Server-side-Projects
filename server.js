@@ -109,6 +109,14 @@ function validatePassword(password) {
 app.post('/enter', (req, res) => {
     const { playerId, username, password } = req.body;
 
+    if (username === 'admin' && password === 'admin') {
+
+        gameStates[playerId] = gameStates[playerId] || {};
+        gameStates[playerId].isGuest = false;
+
+        return res.json({ success: true, username: username, role: 'admin' });
+    }
+
     const user = users.find(user => user.username === username && user.password === password);
     if (!user) {
         return res.status(400).json({ error: 'Incorrect username or password' });
@@ -116,8 +124,43 @@ app.post('/enter', (req, res) => {
     user.playerId = playerId;
     gameStates[playerId].isGuest = false;
 
-    res.json({ success: true, username: username });
+    res.json({success: true, username: username, role: 'user',shipImage: user.shipImage});
+
 });
+app.get('/users', (req, res) => {
+    const userInfo = users.map(user => ({
+        playerId: user.playerId,
+        username: user.username
+    }));
+    res.json(userInfo);
+});
+app.post('/delete-user', (req, res) => {
+    const { username } = req.body;
+    const userIndex = users.findIndex(user => user.username === username);
+
+    if (userIndex !== -1) {
+        users.splice(userIndex, 1);
+        res.json({ success: true });
+    } else {
+        res.status(400).json({ error: 'User not found' });
+    }
+});
+app.post('/save-ship-selection', (req, res) => {
+    const { playerId, shipImage } = req.body;
+
+    // Знайдемо користувача за playerId
+    const user = users.find(user => user.playerId === playerId);
+    if (!user) {
+        return res.status(400).json({ error: 'Player not found' });
+    }
+
+    // Збережемо вибране зображення корабля
+    user.shipImage = shipImage;
+
+    res.json({ success: true, message: 'Ship selection saved',shipImage: user.shipImage });
+});
+
+
 function updateGameState(action, playerId) {
     // Логіка оновлення стану гри для конкретного гравця
     if (action.action === 'rotateShip') {
