@@ -34,6 +34,7 @@ let gameStates = {}; // Об'єкт для зберігання стану гр�
 let players = {};
 let playerIdCounter = 0;
 let users=[];
+let observers = {};
 
 
 app.post('/action', (req, res) => {
@@ -63,7 +64,10 @@ app.post('/start-game', (req, res) => {
 
     // Перевірка наявності ID гравця
     if (!gameStates[playerId]) {
-        return res.status(400).json({ error: 'Гравець не знайдений' });
+        return res.status(400).json({ error: 'Player not found' });
+    }
+    if (gameStates[playerId].isWatching) {
+        return res.status(400).json({ error: 'You cannot start a game while you are watching another player' });
     }
 
     const allUsersInfo = users.filter(user => user.score !== undefined).map(user => ({
@@ -143,6 +147,7 @@ app.post('/enter', async(req, res) => {
 
     user.playerId = playerId;
     gameStates[playerId].isGuest = false;
+    gameStates[playerId].username= user.username;
 
     res.json({success: true, username: username, role: 'user',shipImage: user.shipImage});
 
@@ -195,6 +200,22 @@ app.post('/save-ship-selection', (req, res) => {
 
     res.json({ success: true, message: 'Ship selection saved',shipImage: user.shipImage });
 });
+app.post('/show-status', (req, res) => {
+    const {playerId} = req.body;
+    const playerIdStr = String(playerId);
+
+
+    const usersStatus = Object.keys(gameStates)
+        .filter(id => id !== playerIdStr)
+        .filter(id => gameStates[id].status === 'in_progress')
+        .map(id => ({
+            playerId: id,
+            username: gameStates[id].username || 'N/A',
+            status: gameStates[id].status,
+        }));
+
+    res.json({ success: true, users: usersStatus });
+});
 
 
 function updateGameState(action, playerId) {
@@ -224,10 +245,46 @@ wss.on('connection', (client) => {
         score: 0,
         speed: 1000,
         counter: 0,
-        isGuest: true
+        isGuest: true,
+        status: 'waiting',
+        username: null,
+        isWatching: false,
     };
 
-    // preGame(playerId);
+    setInterval(() => {
+        Object.keys(gameStates).forEach((id) => {
+            const gameState = gameStates[id];
+
+
+            if (observers[id]) {
+                observers[id].forEach((observerWs) => {
+                    if (observerWs.readyState === WebSocket.OPEN) {
+                        observerWs.send(JSON.stringify({gameState, observer: true}));
+                    }
+                });
+            }
+        });
+    }, 300);
+});
+app.post('/observe', (req, res) => {
+    const { playerId, targetPlayerId } = req.body;
+
+    if (!gameStates[targetPlayerId] || gameStates[targetPlayerId].status!=='in_progress') {
+        return res.status(404).json({ error: 'The player to be monitored is not found or is not playing ' });
+    }
+    if (gameStates[playerId].isWatching) {
+        return res.status(404).json({ error: 'You are already watching the player.' });
+
+    }
+
+
+    if (!observers[targetPlayerId]) {
+        observers[targetPlayerId] = [];
+    }
+    observers[targetPlayerId].push(players[playerId]);
+    gameStates[playerId].isWatching = true;
+
+    res.json({ success: true, message: `You have subscribed to a player with ID ${targetPlayerId}` });
 });
 
 function makeStatistik(playerId){
@@ -253,6 +310,7 @@ function makeStatistik(playerId){
 
 var startGame = (playerId) => {
     mainLoop(playerId);
+    gameStates[playerId].status= 'in_progress'
 };
 
 let preGame = (playerId) => {
@@ -272,6 +330,7 @@ let preGame = (playerId) => {
 function endGame(playerId) {
     console.log('user end the game:'+playerId)
     clearInterval(intervalId[playerId]);
+    gameStates[playerId].status='finished'
     makeStatistik(playerId);
 }
 let intervalId=[];

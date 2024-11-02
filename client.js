@@ -11,6 +11,7 @@ let rShip = 0;
 let missiles = [];
 let lasers = []
 let gState=null;
+let observer=false
 
 function updateGstate(gameState){
     rShip=gameState.ship.r;
@@ -26,7 +27,17 @@ socket.onmessage = (event) => {
         playerId = gameState.playerId;
         console.log(`Ваш ID: ${gameState.playerId}`);
         // Можна зберегти ID в змінній для подальшого використання
-    } else {
+    } else if (gameState.observer === true){
+        observer=true
+        gameStatusDiv.innerHTML = `
+                <p>Player ID: ${gameState.gameState.playerId}</p>
+                <p>Score: ${gameState.gameState.score}</p>
+                <p>Ship Position: X=${gameState.gameState.ship.x}, Y=${gameState.gameState.ship.y}, Rotation=${gameState.gameState.ship.r}</p>
+                <p>Status: ${gameState.gameState.status}</p>
+            `;
+        updateGstate(gameState.gameState);
+        updateGameUI(gameState.gameState);
+    }else if(!observer) {
         console.log(`Повідомлення від сервера:`)
         console.log(gameState)
 
@@ -93,7 +104,9 @@ function startGame(){
         })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Unable to start the game');
+                    return response.json().then(err => {
+                        throw new Error(err.error || 'Unable to start the game');
+                    });
                 }
                 return response.json(); // Отримуємо JSON відповідь
             })
@@ -102,7 +115,7 @@ function startGame(){
                 displayAllUsersInfo(data.users);
             })
             .catch(error => {
-                console.error('Error:', error);
+                alert(error.message);
             });
     }
 }
@@ -447,4 +460,64 @@ formm.addEventListener('submit', function(event) {
         .catch(error => {
             responseMessage.textContent = 'An error occurred while saving your selection.';
         });
+});
+
+const statusButton =document.getElementById('statusButton')
+statusButton.addEventListener('click',()=>{
+
+    fetch('http://localhost:8080/show-status', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ playerId})
+    })
+        .then(response => response.json())
+        .then(data => {
+            // console.log(data);
+            const statusMessage = document.getElementById('statusMessage');
+            statusMessage.innerHTML = ''; // Очищуємо попереднє повідомленняс
+            if (data.success) {
+                statusMessage.innerHTML = data.users.map(user => {
+                        return `<div>
+                        Player ID: ${user.playerId} <br>
+                        Username: ${user.username} <br>
+                        Status: ${user.status} <br>
+                    </div><hr>`;
+                    })
+                    .join('');
+            }
+
+        })
+        .catch(error => {
+            responseMessage.textContent = 'An error occurred while saving your selection.';
+        });
+});
+
+const gameStatusDiv = document.getElementById('gameStatus');
+const observeButton = document.getElementById('observeButton');
+const targetPlayerIdInput = document.getElementById('targetPlayerId');
+
+observeButton.addEventListener('click', () => {
+    const targetPlayerId = parseInt(targetPlayerIdInput.value);
+    if (isNaN(targetPlayerId)) {
+        alert('Enter a valid player ID');
+        return;
+    }
+
+    fetch('http://localhost:8080/observe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerId, targetPlayerId })
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log(`Subscription to a player with an ID  ${targetPlayerId} is successful`);
+            } else {
+                alert(data.error);
+            }
+        }).catch(error => {
+        alert('An error occurred: ' + error.message);
+    });
 });
