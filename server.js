@@ -14,8 +14,8 @@ const WebSocket = require('ws');
 const bcrypt = require('bcrypt');
 
 const app = express();
-const port = 8080; // HTTP порт
-const WSport = 8082; // WS порт
+const port = 8080;
+const WSport = 8082;
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ port: WSport });
 const json2csv = require('json2csv').parse;
@@ -28,9 +28,11 @@ server.listen(port, () => {
     console.log(`HTTP-сервер запущено на http://localhost:${port}`);
 
 });
+app.get('/page-structure', (req, res) => {
+    res.json(serverFunction.pageStructure);
+});
 
-
-let gameStates = {}; // Об'єкт для зберігання стану гри користувачів
+let gameStates = {};
 let players = {};
 let playerIdCounter = 0;
 let users=[];
@@ -44,13 +46,10 @@ app.post('/action', (req, res) => {
         return res.status(400).json({ error: 'Гравець не знайдений' });
     }
 
-    // Оновлення стану гри на основі дії
     updateGameState(action, playerId);
 
-    // Відповідаємо клієнту
     res.json({ success: true });
 
-    // Відправляємо оновлений стан гри цьому клієнту через WebSocket
     const client = players[playerId];
     if (client && client.readyState === WebSocket.OPEN) {
         const gameStateToSend = { ...gameStates[playerId] };
@@ -62,24 +61,27 @@ app.post('/action', (req, res) => {
 app.post('/start-game', (req, res) => {
     const { playerId } = req.body;
 
-    // Перевірка наявності ID гравця
     if (!gameStates[playerId]) {
         return res.status(400).json({ error: 'Player not found' });
+    }
+    if (gameStates[playerId].status ==='in_progress') {
+        return res.status(400).json({ error: 'The player is already playing ' });
     }
     if (gameStates[playerId].isWatching) {
         return res.status(400).json({ error: 'You cannot start a game while you are watching another player' });
     }
-
     const allUsersInfo = users.filter(user => user.score !== undefined).map(user => ({
-            username: user.username,
-            score: user.score
-        }));
+        username: user.username,
+        scoreMAX: user.score,
+        scoreSession:gameStates[user.playerId].score
+    }));
+    if (gameStates[playerId].status === 'finished') {
+        resetGameState(playerId);
+    }
 
 
-    // Запускаємо гру для цього гравця
+    gameStates[playerId].status= 'in_progress'
     preGame(playerId);
-
-    // Відповідаємо клієнту
     res.json({ success: true, message: 'Game started successfully!' , users:allUsersInfo});
 });
 app.post('/registration', async(req, res) => {
@@ -97,9 +99,8 @@ app.post('/registration', async(req, res) => {
     }
     console.log(playerId,username,email,password)
     try {
-        // Хешування пароля
-        const hashedPassword = await bcrypt.hash(password, 10); // 10 - це число раундів хешування
-        const newUser = { playerId: playerId, username: username, email: email, password: hashedPassword };
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = { playerId: playerId, username: username, email: email, password: hashedPassword ,score: 0,speed: 0};
         users.push(newUser);
 
         res.json({ success: true });
@@ -111,6 +112,15 @@ app.post('/registration', async(req, res) => {
     //
     // res.json({ success: true});
 });
+function resetGameState(playerId) {
+    if (gameStates[playerId]) {
+        gameStates[playerId].score = 0;
+        gameStates[playerId].speed = 1000;
+        gameStates[playerId].missiles=[];
+        gameStates[playerId].lasers=[];
+        gameStates[playerId].counter= 0
+    }
+}
 function validateEmail(email) {
     const emailPattern = /^[a-zA-Z0-9._%+-]{3,}@[a-zA-Z0-9.-]{3,}\.[a-zA-Z]{2,}$/;
     if (!emailPattern.test(email)) {
@@ -171,13 +181,17 @@ app.post('/delete-user', (req, res) => {
     }
 });
 app.get('/export-users', (req, res) => {
+    if (users.length === 0) {
+        return res.status(204).send();
+    }
+
     const usersForExport = users.map(user => ({
         playerId: user.playerId,
         username: user.username,
         email: user.email,
         password: user.password,
-        maxScore: user.maxScore || 0,
-        maxSpeed: user.maxSpeed || 0
+        maxScore: user.score || 0,
+        maxSpeed: user.speed || 0
     }));
     const csv = json2csv(usersForExport);
 
@@ -189,13 +203,11 @@ app.get('/export-users', (req, res) => {
 app.post('/save-ship-selection', (req, res) => {
     const { playerId, shipImage } = req.body;
 
-    // Знайдемо користувача за playerId
     const user = users.find(user => user.playerId === playerId);
     if (!user) {
-        return res.status(400).json({ error: 'Player not found' });
+        return res.status(400).json({ error: 'Must play the game to open this option' });
     }
 
-    // Збережемо вибране зображення корабля
     user.shipImage = shipImage;
 
     res.json({ success: true, message: 'Ship selection saved',shipImage: user.shipImage });
@@ -219,7 +231,6 @@ app.post('/show-status', (req, res) => {
 
 
 function updateGameState(action, playerId) {
-    // Логіка оновлення стану гри для конкретного гравця
     if (action.action === 'rotateShip') {
         gameStates[playerId].ship.r =serverFunction.rotateShip(gameStates[playerId].ship.r,action.direction);
     } else if (action.action === 'addLaser') {
@@ -287,12 +298,12 @@ app.post('/observe', (req, res) => {
     res.json({ success: true, message: `You have subscribed to a player with ID ${targetPlayerId}` });
 });
 
-function makeStatistik(playerId){
+function makeStatistik (playerId){
     const user = users.find(user => user.playerId === playerId);
-    if (user && !gameStates[playerId].isGuest) {
-        user.score = gameStates[playerId].score;
-        user.speed = gameStates[playerId].speed;
-    }else {
+    if (user&& (user.speed<=gameStates[playerId].speed || user.score<=gameStates[playerId].score)) {
+        user.score = Math.max(user.score, gameStates[playerId].score);
+        user.speed = Math.max(user.speed, gameStates[playerId].speed);
+    }else if(!user){
         const newUser = {
             playerId: playerId,
             username: 'notRegisteredUser'+playerId,
@@ -310,7 +321,6 @@ function makeStatistik(playerId){
 
 var startGame = (playerId) => {
     mainLoop(playerId);
-    gameStates[playerId].status= 'in_progress'
 };
 
 let preGame = (playerId) => {

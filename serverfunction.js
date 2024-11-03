@@ -1,11 +1,5 @@
-module.exports = {
-    rotateShip,
-    addLaser,
-    moveLasers,
-    moveMissiles,
-    addMissile
-
-};
+// serverfunction.js
+// Yulian Kisil id:128371
 const server =require('./server');
 
 
@@ -112,7 +106,6 @@ function collision(playerId,gameStates) {
 
 function moveLasers(playerId,gameStates) {
 
-    // move lasers
     gameStates[playerId].lasers = gameStates[playerId].lasers.map(laser => {
         if(laser.r === 0)      { laser.y--; }
         else if(laser.r === 1) { laser.x++; laser.y--; }
@@ -164,10 +157,152 @@ function moveLasers(playerId,gameStates) {
 
 
 
+const pageStructure = {
+    tag: "div",
+    id: "cont",
+    class: "container",
+    innerTags: [
+        {
+            tag: "div",
+            class: "row",
+            innerTags: [
+                {
+                    tag: "h1",
+                    innerText: "U2"
+                }
+            ]
+        },
+        {
+            tag: "div",
+            class: "row",
+            innerTags: [
+                {
+                    tag: "div",
+                    id: "game",
+                    innerText: ""
+                }
+            ]
+        },
+        {
+            tag: "form",
+            id: "registrationForm",
+            innerTags: [
+                {
+                    tag: "table",
+                    innerTags: [
+                        {
+                            tag: "tr",
+                            innerTags: [
+                                { tag: "td", innerText: "Meno používateľa:" },
+                                { tag: "td", innerTags: [{ tag: "input", type: "text", id: "username", name: "username", required: true }] }
+                            ]
+                        },
+                        {
+                            tag: "tr",
+                            innerTags: [
+                                { tag: "td", innerText: "Email:" },
+                                { tag: "td", innerTags: [{ tag: "input", type: "email", id: "email", name: "email" }] }
+                            ]
+                        },
+                        {
+                            tag: "tr",
+                            innerTags: [
+                                { tag: "td", innerText: "Heslo:" },
+                                { tag: "td", innerTags: [{ tag: "input", type: "password", id: "password", name: "password", required: true }] }
+                            ]
+                        },
+                        {
+                            tag: "tr",
+                            innerTags: [
+                                {
+                                    tag: "td",
+                                    colspan: 1,
+                                    style: "text-align: center;",
+                                    innerTags: [
+                                        { tag: "button", type: "submit", innerText: "Registrovať sa" },
+                                        { tag: "button", type: "button", id: "loginButton", innerText: "Prihlásiť sa" }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            tag: "tr",
+                            innerTags: [
+                                {
+                                    tag: "td",
+                                    colspan: 2,
+                                    style: "text-align: center;",
+                                    innerTags: [
+                                        { tag: "p", id: "pp", innerText: "" }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            tag: "div",
+            id: "adminPanel",
+            style: "display: none;",
+            innerTags: [
+                { tag: "button", id: "viewUsersButton", innerText: "View Users" },
+                { tag: "div", id: "userList", innerText: "" },
+                { tag: "input", type: "text", id: "userIdToDelete", placeholder: "Enter Username to delete" },
+                { tag: "button", id: "deleteUserButton", innerText: "Delete User" },
+                { tag: "p", id: "deleteInfo", innerText: "" },
+                { tag: "button", id: "exportButton", innerText: "export csv" }
+            ]
+        },
+        {
+            tag: "form",
+            id: "shipSelectionForm",
+            innerTags: [
+                { tag: "h2", innerText: "Select an image of the ship:" },
+                {
+                    tag: "div",
+                    innerTags: [
+                        {
+                            tag: "label",
+                            innerTags: [
+                                { tag: "input", type: "radio", name: "shipImage", value: "ship1", required: true },
+                                { tag: "img", src: "https://openclipart.org/image/400px/261330", alt: "Ship 1", width: 100, height: 100 }
+                            ]
+                        },
+                        {
+                            tag: "label",
+                            innerTags: [
+                                { tag: "input", type: "radio", name: "shipImage", value: "ship2" },
+                                { tag: "img", src: "https://openclipart.org/image/400px/178310", alt: "Ship 2", width: 100, height: 100 }
+                            ]
+                        }
+                    ]
+                },
+                { tag: "button", type: "submit", innerText: "Save your selection" }
+            ]
+        },
+        { tag: "p", id: "responseMessage", innerText: "" },
+        { tag: "button", id: "statusButton", innerText: "Show status" },
+        { tag: "div", id: "statusMessage", innerText: "" },
+        {
+            tag: "h2",
+            innerText: "Observation of the player"
+        },
+        { tag: "input", type: "number", id: "targetPlayerId", placeholder: "ID of the player to be monitored" },
+        { tag: "button", id: "observeButton", innerText: "Follow a player" },
+    ]
+};
 
 
-
-
+module.exports = {
+    rotateShip,
+    addLaser,
+    moveLasers,
+    moveMissiles,
+    addMissile,
+    pageStructure
+};
 
 
 
