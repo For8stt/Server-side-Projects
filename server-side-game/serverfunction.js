@@ -1,5 +1,5 @@
 // server file
-// Yulian Kisil id:128371
+// Yulian Kisil
 const server =require('./server');
 
 

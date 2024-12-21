@@ -1,5 +1,5 @@
 // client-side file
-// Yulian Kisil id: 128371
+// Yulian Kisil
 
 const socket = new WebSocket('ws://localhost:8082'); // Підключення до WebSocket
 

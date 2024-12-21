@@ -1,5 +1,5 @@
 // server-side file
-// Yulian Kisil id:128371
+// Yulian Kisil
 module.exports={
     endGame,
 }

@@ -1,5 +1,5 @@
 # Docker
-# Yulian Kisil id:128371
+# Yulian Kisil
 
 FROM node:lts
 
