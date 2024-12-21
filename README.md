@@ -1,4 +1,4 @@
-# Server-Side Projects
+# Server-Side Project
 
 ### Project Description:
 The goal of this project is to transform a client-side game into a server-side solution capable of managing multiple players and game sessions. The main objective is to implement the game’s logic and functionality on the server, handling requests from the client, and ensuring that the game can support multiple concurrent users with smooth communication between the client and server.  
