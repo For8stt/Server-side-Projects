@@ -1,6 +1,6 @@
-Server-side-projects
+#Server-side-projects
 
-Project Description:
+###Project Description:
 The goal of this project is to transform a client-side game 
 into a server-side solution capable of managing multiple players 
 and game sessions. The main objective is to implement the game’s
@@ -10,7 +10,7 @@ smooth communication between the client and server.
 The communication between the client and server is based on two primary technologies:
 HTTP for user interactions and WebSockets for real-time updates of the game state.
 
-Core Features and Architecture:
+###Core Features and Architecture:
 1.Server-Side Game Logic
 2.WebSocket for Game State Updates
 3.User Registration and Login
@@ -23,17 +23,16 @@ Core Features and Architecture:
 
 
 
-Health project
+#Health project
 
-Project Description:
+###Project Description:
 The goal of this project is to create a web application for
 monitoring personal fitness, where users can track various health metrics 
 such as weight, blood pressure, and heart rate. The application will allow 
 users to register, log in, and manage their health data, and will feature
 an admin interface to manage users and advertising.
 
-Core Features and Functionality:
-
+###Core Features and Functionality:
 1.Database and User Management
 2.User Interface
   2.1 Registration and Login
@@ -48,7 +47,7 @@ Core Features and Functionality:
   3.3 Advertising Management
 4. End-to-End Testing
 
-Database: 
+###Database: 
 The database was used: MySQL
 
 
