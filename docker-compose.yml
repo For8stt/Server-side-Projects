@@ -1,0 +1,52 @@
+#Yulian Kisil id:128371
+version: '3'
+
+services:
+  monitor-siet.db:
+    image: mysql:latest
+    ports:
+      - "3306:3306"
+    expose:
+      - '3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: 090705jk
+      MYSQL_DATABASE: fitness_db
+    restart: on-failure
+    networks:
+      - monitor-siet
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "monitor-siet.db", "-u", "root", "-p090705jk" ]
+      interval: 10s
+      retries: 5
+      timeout: 5s
+
+  monitor-siet.app:
+    build: .
+    ports:
+      - "8080:8080"
+#    depends_on:
+#      - monitor-siet.db
+    depends_on:
+      monitor-siet.db:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - monitor-siet
+
+  tester:
+    build:
+      context: .
+      dockerfile: dockerfile.simulator
+    networks:
+      - monitor-siet
+    depends_on:
+      monitor-siet.db:
+        condition: service_healthy
+      monitor-siet.app:
+        condition: service_started
+    command: [ "npm", "test" ]
+
+
+networks:
+  monitor-siet:
+    driver: bridge
