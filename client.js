@@ -1,10 +1,10 @@
-// client.js
+// client-side file
 // Yulian Kisil id: 128371
 
 const socket = new WebSocket('ws://localhost:8082'); // Підключення до WebSocket
 
 socket.onopen = () => {
-    console.log('Підключено до WebSocket сервера');
+    console.log('Connected to the WebSocket server');
 };
 
 
@@ -23,6 +23,7 @@ function createElementFromStructure(structure) {
     if (structure.width) element.width = structure.width;
     if (structure.height) element.height = structure.height;
     if (structure.value) element.value = structure.value;
+    if (structure.accept) element.accept = structure.accept;
     // if (structure.style) element.style.cssText = structure.style;
     if (structure.style) {
         if (typeof structure.style === 'string') {
@@ -193,7 +194,27 @@ function addEventListeners() {
                 alert(`Error exporting users: ${error.message}`);
             });
     });
+    document.getElementById('importButton').addEventListener('click', (event) => {
+        event.preventDefault();
 
+        const fileInput = document.getElementById('userFileInput');
+        const file = fileInput.files[0];
+        const formData = new FormData();
+        formData.append('file', file);
+
+        fetch('http://localhost:8080/import-users', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.text())
+            .then(message => {
+                document.getElementById('deleteInfo').textContent = message;
+            })
+            .catch(error => {
+                console.error('Error uploading CSV file:', error);
+                document.getElementById('deleteInfo').textContent = 'Error uploading CSV file';
+            });
+    });
     const formm = document.getElementById('shipSelectionForm');
     const responseMessage = document.getElementById('responseMessage');
 
@@ -600,230 +621,3 @@ function showUsers() {
             console.error('Error fetching users:', error);
         });
 }
-    //
-    // const form = document.getElementById('registrationForm');
-    // const nameInput = document.getElementById('username');
-    // const emailInput = document.getElementById('email');
-    // const passwordInput = document.getElementById('password');
-    // const pp = document.getElementById('pp');
-    //
-    // form.addEventListener('submit', function (event) {
-    //     event.preventDefault();
-    //     const username = nameInput.value;
-    //     const email = emailInput.value;
-    //     const password = passwordInput.value;
-    //
-    //     fetch('http://localhost:8080/registration', {
-    //         method: 'POST',
-    //         headers: {'Content-Type': 'application/json'},
-    //         body: JSON.stringify({playerId, username: username, email: email, password: password})
-    //     })
-    //         .then(response => response.json())
-    //         .then(data => {
-    //             if (data.success) {
-    //                 pp.textContent = 'registered '
-    //             } else {
-    //                 pp.textContent = ` Registration error: ${data.error}`
-    //             }
-    //         });
-    //
-    //     form.reset();
-    // });
-    //
-    // document.getElementById('loginButton').addEventListener('click', function (event) {
-    //     event.preventDefault();
-    //
-    //     const username = nameInput.value;
-    //     const email = emailInput.value;
-    //     const password = passwordInput.value;
-    //     console.log(`Enter in the system. Meno: ${username}, Email: ${email}, Heslo: ${password}`);
-    //     fetch('http://localhost:8080/enter', {
-    //         method: 'POST',
-    //         headers: {'Content-Type': 'application/json'},
-    //         body: JSON.stringify({playerId, username: username, password: password})
-    //     })
-    //         .then(response => response.json())
-    //         .then(data => {
-    //             if (data.success) {
-    //                 if (data.role === 'admin') {
-    //                     pp.textContent = `Welcome, Admin ${data.username}`;
-    //                     document.getElementById('adminPanel').style.display = 'block';
-    //                 } else {
-    //                     pp.textContent = `Welcome, ${data.username}`;
-    //                     document.getElementById('adminPanel').style.display = 'none';
-    //                 }
-    //                 if (data.shipImage) {
-    //                     ShipUse = data.shipImage
-    //                     console.log(ShipUse);
-    //                 }
-    //             } else {
-    //                 pp.textContent = `Enter error: ${data.error}`
-    //             }
-    //         });
-    //
-    //     form.reset();
-    // });
-    //
-    // document.getElementById('viewUsersButton').addEventListener('click', function () {
-    //     showUsers()
-    // });
-    //
-    // function showUsers() {
-    //     fetch('http://localhost:8080/users', {
-    //         method: 'GET',
-    //         headers: {'Content-Type': 'application/json'}
-    //     })
-    //         .then(response => response.json())
-    //         .then(users => {
-    //             const userList = document.getElementById('userList');
-    //             userList.innerHTML = '';
-    //             users.forEach(user => {
-    //                 const userItem = document.createElement('p');
-    //                 userItem.textContent = `Username: ${user.username}`;
-    //                 userList.appendChild(userItem);
-    //             });
-    //             showUsers();
-    //         })
-    //         .catch(error => {
-    //             console.error('Error fetching users:', error);
-    //         });
-    // }
-    //
-    // deleteInfo = document.getElementById('deleteInfo')
-    // document.getElementById('deleteUserButton').addEventListener('click', function () {
-    //     const userNameToDelete = document.getElementById('userIdToDelete').value;
-    //
-    //     fetch(`http://localhost:8080/delete-user`, {
-    //         method: 'POST',
-    //         headers: {'Content-Type': 'application/json'},
-    //         body: JSON.stringify({username: userNameToDelete})
-    //     })
-    //         .then(response => response.json())
-    //         .then(data => {
-    //             if (data.success) {
-    //                 deleteInfo.textContent = `User ID ${userNameToDelete} has been deleted.`;
-    //                 document.getElementById('userIdToDelete').value = '';
-    //             } else {
-    //                 deleteInfo.textContent = `Error deleting user: ${data.error}`;
-    //             }
-    //         })
-    //         .catch(error => {
-    //             console.error('Error deleting user:', error);
-    //         });
-    // });
-    // const exportButton = document.getElementById('exportButton');
-    // exportButton.addEventListener('click', () => {
-    //     fetch('http://localhost:8080/export-users', {
-    //         method: 'GET',
-    //         headers: {'Content-Type': 'application/json'}
-    //     })
-    //         .then(response => {
-    //             if (!response.ok) {
-    //                 throw new Error('Network response was not ok');
-    //             }
-    //             return response.blob(); // Отримуємо CSV як blob
-    //         })
-    //         .then(blob => {
-    //             const url = window.URL.createObjectURL(blob);
-    //             const a = document.createElement('a');
-    //             a.href = url;
-    //             a.download = 'users.csv';
-    //             document.body.appendChild(a);
-    //             a.click();
-    //             a.remove();
-    //             window.URL.revokeObjectURL(url);
-    //         })
-    //         .catch(error => {
-    //             console.error('Error exporting users:', error);
-    //         });
-    // });
-    //
-    // const formm = document.getElementById('shipSelectionForm');
-    // const responseMessage = document.getElementById('responseMessage');
-    //
-    // formm.addEventListener('submit', function (event) {
-    //     event.preventDefault();
-    //
-    //     const selectedShipImage = formm.shipImage.value;
-    //
-    //     fetch('http://localhost:8080/save-ship-selection', {
-    //         method: 'POST',
-    //         headers: {
-    //             'Content-Type': 'application/json'
-    //         },
-    //         body: JSON.stringify({playerId, shipImage: selectedShipImage})
-    //     })
-    //         .then(response => response.json())
-    //         .then(data => {
-    //             if (data.success) {
-    //                 responseMessage.textContent = data.message;
-    //                 ShipUse = data.shipImage
-    //                 console.log(ShipUse)
-    //             } else {
-    //                 responseMessage.textContent = `Error: ${data.error}`;
-    //             }
-    //         })
-    //         .catch(error => {
-    //             responseMessage.textContent = 'An error occurred while saving your selection.';
-    //         });
-    // });
-    //
-    // const statusButton = document.getElementById('statusButton')
-    // statusButton.addEventListener('click', () => {
-    //
-    //     fetch('http://localhost:8080/show-status', {
-    //         method: 'POST',
-    //         headers: {
-    //             'Content-Type': 'application/json'
-    //         },
-    //         body: JSON.stringify({playerId})
-    //     })
-    //         .then(response => response.json())
-    //         .then(data => {
-    //             // console.log(data);
-    //             const statusMessage = document.getElementById('statusMessage');
-    //             statusMessage.innerHTML = '';
-    //             if (data.success) {
-    //                 statusMessage.innerHTML = data.users.map(user => {
-    //                     return `<div>
-    //                     Player ID: ${user.playerId} <br>
-    //                     Username: ${user.username} <br>
-    //                     Status: ${user.status} <br>
-    //                 </div><hr>`;
-    //                 })
-    //                     .join('');
-    //             }
-    //
-    //         })
-    //         .catch(error => {
-    //             responseMessage.textContent = 'An error occurred while saving your selection.';
-    //         });
-    // });
-    //
-    // const gameStatusDiv = document.getElementById('gameStatus');
-    // const observeButton = document.getElementById('observeButton');
-    // const targetPlayerIdInput = document.getElementById('targetPlayerId');
-    //
-    // observeButton.addEventListener('click', () => {
-    //     const targetPlayerId = parseInt(targetPlayerIdInput.value);
-    //     if (isNaN(targetPlayerId)) {
-    //         alert('Enter a valid player ID');
-    //         return;
-    //     }
-    //
-    //     fetch('http://localhost:8080/observe', {
-    //         method: 'POST',
-    //         headers: {'Content-Type': 'application/json'},
-    //         body: JSON.stringify({playerId, targetPlayerId})
-    //     })
-    //         .then(response => response.json())
-    //         .then(data => {
-    //             if (data.success) {
-    //                 console.log(`Subscription to a player with an ID  ${targetPlayerId} is successful`);
-    //             } else {
-    //                 alert(data.error);
-    //             }
-    //         }).catch(error => {
-    //         alert('An error occurred: ' + error.message);
-    //     });
-    // });

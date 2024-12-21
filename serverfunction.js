@@ -1,4 +1,4 @@
-// serverfunction.js
+// server file
 // Yulian Kisil id:128371
 const server =require('./server');
 
@@ -193,7 +193,7 @@ const pageStructure = {
                         {
                             tag: "tr",
                             innerTags: [
-                                { tag: "td", innerText: "Meno používateľa:" },
+                                { tag: "td", innerText: "User name:" },
                                 { tag: "td", innerTags: [{ tag: "input", type: "text", id: "username", name: "username", required: true }] }
                             ]
                         },
@@ -207,7 +207,7 @@ const pageStructure = {
                         {
                             tag: "tr",
                             innerTags: [
-                                { tag: "td", innerText: "Heslo:" },
+                                { tag: "td", innerText: "Password:" },
                                 { tag: "td", innerTags: [{ tag: "input", type: "password", id: "password", name: "password", required: true }] }
                             ]
                         },
@@ -219,8 +219,8 @@ const pageStructure = {
                                     colspan: 1,
                                     style: "text-align: center;",
                                     innerTags: [
-                                        { tag: "button", type: "submit", innerText: "Registrovať sa" },
-                                        { tag: "button", type: "button", id: "loginButton", innerText: "Prihlásiť sa" }
+                                        { tag: "button", type: "submit", innerText: "Register" },
+                                        { tag: "button", type: "button", id: "loginButton", innerText: "Log in" }
                                     ]
                                 }
                             ]
@@ -251,8 +251,11 @@ const pageStructure = {
                 { tag: "div", id: "userList", innerText: "" },
                 { tag: "input", type: "text", id: "userIdToDelete", placeholder: "Enter Username to delete" },
                 { tag: "button", id: "deleteUserButton", innerText: "Delete User" },
+                { tag: "input", type: "file", id: "userFileInput",accept:".csv" },
                 { tag: "p", id: "deleteInfo", innerText: "" },
-                { tag: "button", id: "exportButton", innerText: "export csv" }
+                { tag: "button", id: "importButton", innerText: "import csv" },
+                { tag: "button", id: "exportButton", innerText: "export csv" },
+
             ]
         },
         {
@@ -283,7 +286,7 @@ const pageStructure = {
             ]
         },
         { tag: "p", id: "responseMessage", innerText: "" },
-        { tag: "button", id: "statusButton", innerText: "Show status" },
+        { tag: "button", id: "statusButton", innerText: "Show active players" },
         { tag: "div", id: "statusMessage", innerText: "" },
         {
             tag: "h2",
@@ -310,83 +313,3 @@ module.exports = {
 //===========================================================================================//
 //===========================================================================================//
 //===========================================================================================//
-/*
-
-//===Reset===//
-const resetButton=document.createElement('button')
-resetButton.textContent='Reset'
-document.body.appendChild(resetButton)
-
-resetButton.addEventListener('click', resetGame);
-
-function deleteLasers() {
-    lasers.forEach(missile => {
-        deletePoint(missile.x, missile.y);
-    });
-}
-
-function resetGame() {
-    clearInterval(ival);
-    score = 0;
-    speed = 1000;
-    counter = 0;
-    deleteLasers();
-    deleteMissiles();
-    missiles = [];
-    lasers = [];
-    startGame();
-    displayShip();
-}
-//=====//
-
-
-//+===Debug===+//
-const debugButton = document.createElement('button');
-debugButton.textContent = 'Debug off';
-document.body.appendChild(debugButton);
-
-debugButton.addEventListener('click', toggleDebug);
-
-infoElement = document.createElement('p');
-infoElement.id = 'debugArea';
-document.body.appendChild(infoElement);
-
-var debugMod=false;
-var inter=null;
-function toggleDebug() {
-    debugMod=!debugMod
-
-    if (debugMod) {
-        debugButton.textContent = 'Debug on';
-        inter=setInterval(()=>{
-            updateDebugInfo();
-        },speed)
-    }else {
-        debugButton.textContent = 'Debug off';
-        clearInterval(inter);
-        document.getElementById('debugArea').textContent = '';
-    }
-
-}
-function updateDebugInfo() {
-    const debugArea = document.getElementById('debugArea');
-    let debugInfo = `Debug mode:`;
-    debugInfo += 'Active Lasers: ';
-    debugInfo += `Count: ${lasers.length} `;
-    lasers.forEach((laser, index) => {
-        debugInfo += `[ ${laser.x}, ${laser.y}] `;
-    });
-    debugInfo += '|| Active Missiles: ';
-    debugInfo += `Count: ${missiles.length} `;
-    missiles.forEach((missile, index) => {
-        debugInfo += `[${missile.x}, ${missile.y}] `;
-    });
-
-    debugArea.textContent = debugInfo;
-}
-//=========//
-
-
-
-
-*/

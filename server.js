@@ -1,4 +1,4 @@
-// server.js
+// server-side file
 // Yulian Kisil id:128371
 module.exports={
     endGame,
@@ -11,21 +11,24 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const http = require('http');
 const WebSocket = require('ws');
-const bcrypt = require('bcrypt');
+// const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
 
 const app = express();
 const port = 8080;
 const WSport = 8082;
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ port: WSport });
-const json2csv = require('json2csv').parse;
 
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(__dirname));
 
 server.listen(port, () => {
-    console.log(`HTTP-сервер запущено на http://localhost:${port}`);
+    console.log(`The HTTP server is launched at http://localhost:${port}`);
 
 });
 app.get('/page-structure', (req, res) => {
@@ -85,7 +88,7 @@ app.post('/start-game', (req, res) => {
     res.json({ success: true, message: 'Game started successfully!' , users:allUsersInfo});
 });
 app.post('/registration', async(req, res) => {
-    const { playerId ,username, email, password} = req.body;
+    let { playerId ,username, email, password} = req.body;
 
     if (!gameStates[playerId]) {
         return res.status(500).json({ error: 'Player not found' });
@@ -107,10 +110,6 @@ app.post('/registration', async(req, res) => {
     } catch (error) {
         return res.status(500).json({ error: 'Failed to hash password' });
     }
-    // const newUser = {playerId: playerId, username: username, email: email, password: password};
-    // users.push(newUser);
-    //
-    // res.json({ success: true});
 });
 function resetGameState(playerId) {
     if (gameStates[playerId]) {
@@ -142,10 +141,6 @@ app.post('/enter', async(req, res) => {
         return res.json({ success: true, username: username, role: 'admin' });
     }
 
-    // const user = users.find(user => user.username === username && user.password === password);
-    // if (!user) {
-    //     return res.status(400).json({ error: 'Incorrect username or password' });
-    // }
     const user = users.find(user => user.username === username);
     if (!user) {
         return res.status(401).json({ error: 'User not found' });
@@ -193,13 +188,83 @@ app.get('/export-users', (req, res) => {
         maxScore: user.score || 0,
         maxSpeed: user.speed || 0
     }));
-    const csv = json2csv(usersForExport);
+    const csv = convertToCSV(usersForExport);
 
     res.header('Content-Type', 'text/csv');
     res.attachment('users.csv');
     res.send(csv);
 
 });
+
+app.post('/import-users', upload.single('file'), (req, res) => {
+
+    if (!req.file) {
+        return res.status(400).send('No file uploaded');
+    }
+
+    const filePath = req.file.path;
+
+    fs.readFile(filePath, 'utf8', (err, data) => {
+        if (err) {
+            return res.status(500).send(`Error reading file: ${err.message}`);
+        }
+
+        const rows = data.trim().split('\n');
+
+        const headers = rows[0].split(',');
+        const usersToImport = [];
+
+        rows.slice(1).forEach((row) => {
+            const values = row.split(',');
+
+            // const user = headers.reduce((obj, header, index) => {
+            //     obj[header.trim()] = values[index].trim();
+            //     return obj;
+            // }, {});
+            const user = headers.reduce((obj, header, index) => {
+                obj[header.trim()] = values[index].trim().replace(/^"|"$/g, '');
+                return obj;
+            }, {});
+
+
+            const { playerId, username, email, password, maxScore, maxSpeed } = user;
+
+            const userExists = users.some(u => u.username === username && u.email === email);
+            if (!userExists) {
+                usersToImport.push({
+                    playerId:  playerIdCounter+users.length+2,
+                    username,
+                    email,
+                    password,
+                    score: parseInt(maxScore, 10) || 0,
+                    speed: parseInt(maxSpeed, 10) || 0
+                });
+            }
+        });
+
+        playerIdCounter += users.length+2
+        users.push(...usersToImport);
+
+
+        fs.unlink(filePath, (unlinkErr) => {
+            if (unlinkErr) {
+                console.error('Error deleting file:', unlinkErr);
+            }
+        });
+
+        res.send(`Successfully imported ${usersToImport.length} users`);
+    });
+});
+
+const convertToCSV = (data) => {
+    const headers = Object.keys(data[0]).join(',');
+    const rows = data.map(row =>
+        Object.values(row)
+            .map(value => `"${String(value).replace(/"/g, '""')}"`)
+            .join(',')
+    );
+    return [headers, ...rows].join('\n');
+};
 app.post('/save-ship-selection', (req, res) => {
     const { playerId, shipImage } = req.body;
 
@@ -242,7 +307,7 @@ wss.on('connection', (client) => {
     const playerId = playerIdCounter++;
     players[playerId] = client;
 
-    console.log(`Новий користувач підключений: ID=${playerId}`);
+    console.log(`New user is connected: ID=${playerId}`);
     client.send(JSON.stringify({ message: 'connection', playerId: playerId }));
 
     gameStates[playerId] = {
@@ -364,31 +429,3 @@ function mainLoop(playerId) {
         }
     }, gameStates[playerId].speed);
 }
-
-// function hashPassword(password) {
-//
-//     function stringToByteArray(str) {
-//         const byteArray = new Uint8Array(str.length);
-//         for (let i = 0; i < str.length; i++) {
-//             byteArray[i] = str.charCodeAt(i);
-//         }
-//         return byteArray;
-//     }
-//
-//     function byteArrayToHex(byteArray) {
-//         return Array.from(byteArray)
-//             .map((byte) => byte.toString(16).padStart(2, '0'))
-//             .join('');
-//     }
-//
-//     return window.crypto.subtle.digest('SHA-256', stringToByteArray(password))
-//         .then((hashBuffer) => {
-//             const hashArray = new Uint8Array(hashBuffer);
-//             return byteArrayToHex(hashArray);
-//         });
-// }
-//
-// const password = "mySecurePassword";
-// hashPassword(password).then((hashedPassword) => {
-//     console.log("Hashed Password:", hashedPassword);
-// });

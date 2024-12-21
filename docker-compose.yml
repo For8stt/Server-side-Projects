@@ -1,10 +1,15 @@
+# Docker
+# Yulian Kisil id:128371
+
+version: '3.8'
+
 services:
   app:
-    image: node:lts
+    build: .
     working_dir: /app
-    volumes:
-      - .:/app
     ports:
       - "8080:8080"
       - "8082:8082"
     command: ["npm", "start"]
+#    volumes:
+#      - .:/app
